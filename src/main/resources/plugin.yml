@@ -1,0 +1,12 @@
+name: ZornoKoruma
+version: 1.0
+main: com.zornoely.koruma.Main
+api-version: '1.21'
+commands:
+  balta:
+    description: Koruma seçim baltasını verir.
+    permission: koruma.admin
+  koruma:
+    description: Bölge koruma komutları.
+    permission: koruma.admin
+    
