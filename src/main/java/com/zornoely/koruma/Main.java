@@ -237,7 +237,7 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
             }
             player.getInventory().addItem(pick);
             player.sendMessage(color("&b&lZornoEly &8&l► &aTekil blok seçim kazması verildi!"));
-            return true;
+            return typeNameCheckAndExecute(player, args); // Güvenli akış
         }
 
         if (command.getName().equalsIgnoreCase("koruma")) {
@@ -249,7 +249,7 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                 player.sendMessage(color("&b&lZornoEly &8&l► &eKayıtlı Alanlar (" + regions.size() + "):"));
                 for (int i = 0; i < regions.size(); i++) {
                     ProtectedRegion r = regions.get(i);
-                    player.sendMessage(color("&7" + (i + 1) + ". [&b" + r.getTypeName() + "&7] &fÖncelik: &e" + r.getPriority() + " &f| Kırma: " + (r.isPreventBreak() ? "&cYasak" : "&aSerbest")));
+                    player.sendMessage(color("&7" + (i + 1) + ". [&b" + r.getTypeName() + "&7] &fÖncelik: &e" + r.getPriority() + " &f| Kırma: " + (r.isPreventBreak() ? "&cYasak" : "&aSerbest") + " &f| Koyma: " + (r.isPreventPlace() ? "&cYasak" : "&aSerbest")));
                 }
                 return true;
             }
@@ -277,30 +277,44 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                 Location p2 = pos2Map.get(player.getUniqueId());
 
                 int priority = 1;
-                if (subCommand.equals("maden")) {
-                    priority = 10;
-                }
-                
-                if (args.length >= 2) {
-                    try { 
-                        priority = Integer.parseInt(args[1]); 
-                    } catch (NumberFormatException ignored) {}
-                }
-
                 boolean preventBreak = true;
-                boolean preventPlace = true;
+                boolean preventPlace = false; // Varsayılan: sadece kırma koruması (koyma serbest)
                 String typeName = "Koruma";
 
                 if (subCommand.equals("maden")) {
                     preventBreak = false;
                     preventPlace = true;
                     typeName = "Maden";
-                } else if (subCommand.equals("serbest")) {
+                    priority = 10;
+                    if (args.length >= 2) {
+                        try { priority = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
+                    }
+                } 
+                else if (subCommand.equals("serbest")) {
                     preventBreak = false;
                     preventPlace = false;
                     typeName = "Serbest";
-                } else if (subCommand.equals("ac")) {
-                    typeName = "Koruma (Kilitli)";
+                    if (args.length >= 2) {
+                        try { priority = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
+                    }
+                } 
+                else if (subCommand.equals("ac")) {
+                    // /koruma ac all veya /koruma ac all <öncelik> kontrolü
+                    if (args.length >= 2 && args[1].equalsIgnoreCase("all")) {
+                        preventBreak = true;
+                        preventPlace = true; // Hem kırma hem koyma yasak
+                        typeName = "Tam Koruma (Kilitli)";
+                        if (args.length >= 3) {
+                            try { priority = Integer.parseInt(args[2]); } catch (NumberFormatException ignored) {}
+                        }
+                    } else {
+                        preventBreak = true;
+                        preventPlace = false; // Sadece kırma yasak, koyma serbest
+                        typeName = "Koruma (Kırma Yasak)";
+                        if (args.length >= 2) {
+                            try { priority = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
+                        }
+                    }
                 }
 
                 if (selectedBlocks != null && !selectedBlocks.isEmpty()) {
@@ -321,7 +335,8 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
             }
 
             player.sendMessage(color("&b&lZornoEly &8&l► &eKullanım:"));
-            player.sendMessage(color("&f/koruma ac <öncelik> &7- Standart koruma alanı yapar."));
+            player.sendMessage(color("&f/koruma ac <öncelik> &7- Sadece kırma koruması açar (Koyma serbest)."));
+            player.sendMessage(color("&f/koruma ac all <öncelik> &7- Hem kırma hem koyma korumasını açar."));
             player.sendMessage(color("&f/koruma maden <öncelik> &7- Maden alanı yapar (Kırma serbest)."));
             player.sendMessage(color("&f/koruma serbest <öncelik> &7- Tamamen serbest alan yapar."));
             player.sendMessage(color("&f/koruma liste &7- Kayıtlı alanları gösterir."));
@@ -330,6 +345,10 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
         }
 
         return false;
+    }
+
+    private boolean typeNameCheckAndExecute(Player player, String[] args) {
+        return true;
     }
 
     @EventHandler
@@ -394,39 +413,4 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
             if (highestPriorityRegion != null) {
                 if (highestPriorityRegion.isPreventBreak()) {
                     event.setCancelled(true);
-                    p.sendMessage(color("&b&lZornoEly &8&l► &cBu alanda blok kıramazsın!"));
-                } else {
-                    event.setCancelled(false);
-                }
-            }
-        } catch (Exception ignored) {}
-    }
-
-    @EventHandler
-    public void onBlockPlace(BlockPlaceEvent event) {
-        try {
-            Player p = event.getPlayer();
-            if (p.hasPermission("koruma.bypass")) return;
-
-            Location loc = event.getBlock().getLocation();
-            ProtectedRegion highestPriorityRegion = null;
-
-            for (ProtectedRegion region : regions) {
-                if (region.isInside(loc)) {
-                    if (highestPriorityRegion == null || region.getPriority() > highestPriorityRegion.getPriority()) {
-                        highestPriorityRegion = region;
-                    }
-                }
-            }
-
-            if (highestPriorityRegion != null && highestPriorityRegion.isPreventPlace()) {
-                event.setCancelled(true);
-                p.sendMessage(color("&b&lZornoEly &8&l► &cBu alanda blok koyamazsın!"));
-            }
-        } catch (Exception ignored) {}
-    }
-
-    private String color(String text) {
-        return ChatColor.translateAlternateColorCodes('&', text);
-    }
-                    }
+                    
