@@ -276,11 +276,16 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                 Location p1 = pos1Map.get(player.getUniqueId());
                 Location p2 = pos2Map.get(player.getUniqueId());
 
+                // DÜZELTİLEN KISIM: Komuttan sonra girilen 2. argümanı (args[1]) doğrudan öncelik olarak okuyoruz
                 int priority = 1;
-                if (args.length >= 2 && !subCommand.matches("ac|maden|serbest")) {
-                    try { priority = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
-                } else if (args.length >= 3) {
-                    try { priority = Integer.parseInt(args[2]); } catch (NumberFormatException ignored) {}
+                if (subCommand.equals("maden")) {
+                    priority = 10; // Maden için varsayılan öncelik 10
+                }
+                
+                if (args.length >= 2) {
+                    try { 
+                        priority = Integer.parseInt(args[1]); 
+                    } catch (NumberFormatException ignored) {}
                 }
 
                 boolean preventBreak = true;
@@ -291,7 +296,6 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                     preventBreak = false;
                     preventPlace = true;
                     typeName = "Maden";
-                    if (priority == 1) priority = 10;
                 } else if (subCommand.equals("serbest")) {
                     preventBreak = false;
                     preventPlace = false;
@@ -318,11 +322,11 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
             }
 
             player.sendMessage(color("&b&lZornoEly &8&l► &eKullanım:"));
-            player.sendMessage(color("&f/koruma ac &7- Standart koruma alanı yapar."));
-            player.sendMessage(color("&f/koruma maden &7- Maden alanı yapar (Kırma serbest)."));
-            player.sendMessage(color("&f/koruma serbest &7- Tamamen serbest alan yapar."));
+            player.sendMessage(color("&f/koruma ac <öncelik> &7- Standart koruma alanı yapar."));
+            player.sendMessage(color("&f/koruma maden <öncelik> &7- Maden alanı yapar (Kırma serbest)."));
+            player.sendMessage(color("&f/koruma serbest <öncelik> &7- Tamamen serbest alan yapar."));
             player.sendMessage(color("&f/koruma liste &7- Kayıtlı alanları gösterir."));
-            player.sendMessage(color("&f/koruma sil <no> &7- Alanı siler."));
+            player.sendMessage.format(color("&f/koruma sil <no> &7- Alanı siler."));
             return true;
         }
 
@@ -424,6 +428,4 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
     }
 
     private String color(String text) {
-        return ChatColor.translateAlternateColorCodes('&', text);
-    }
-                        }
+        return ChatColor.translateAlternateColorCodes
