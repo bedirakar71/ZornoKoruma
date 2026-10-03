@@ -419,4 +419,4 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
     private String color(String text) {
         return ChatColor.translateAlternateColorCodes('&', text);
     }
-                           }
+                     }
