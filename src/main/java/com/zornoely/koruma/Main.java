@@ -237,7 +237,7 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
             }
             player.getInventory().addItem(pick);
             player.sendMessage(color("&b&lZornoEly &8&l► &aTekil blok seçim kazması verildi!"));
-            return typeNameCheckAndExecute(player, args); // Güvenli akış
+            return true;
         }
 
         if (command.getName().equalsIgnoreCase("koruma")) {
@@ -278,7 +278,7 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
 
                 int priority = 1;
                 boolean preventBreak = true;
-                boolean preventPlace = false; // Varsayılan: sadece kırma koruması (koyma serbest)
+                boolean preventPlace = false; 
                 String typeName = "Koruma";
 
                 if (subCommand.equals("maden")) {
@@ -299,17 +299,16 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                     }
                 } 
                 else if (subCommand.equals("ac")) {
-                    // /koruma ac all veya /koruma ac all <öncelik> kontrolü
                     if (args.length >= 2 && args[1].equalsIgnoreCase("all")) {
                         preventBreak = true;
-                        preventPlace = true; // Hem kırma hem koyma yasak
+                        preventPlace = true; 
                         typeName = "Tam Koruma (Kilitli)";
                         if (args.length >= 3) {
                             try { priority = Integer.parseInt(args[2]); } catch (NumberFormatException ignored) {}
                         }
                     } else {
                         preventBreak = true;
-                        preventPlace = false; // Sadece kırma yasak, koyma serbest
+                        preventPlace = false; 
                         typeName = "Koruma (Kırma Yasak)";
                         if (args.length >= 2) {
                             try { priority = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
@@ -345,10 +344,6 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
         }
 
         return false;
-    }
-
-    private boolean typeNameCheckAndExecute(Player player, String[] args) {
-        return true;
     }
 
     @EventHandler
@@ -413,4 +408,15 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
             if (highestPriorityRegion != null) {
                 if (highestPriorityRegion.isPreventBreak()) {
                     event.setCancelled(true);
-                    
+                    p.sendMessage(color("&b&lZornoEly &8&l► &cBu alanda blok kıramazsın!"));
+                } else {
+                    event.setCancelled(false);
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        try {
+            Player p = event.getPlaye
