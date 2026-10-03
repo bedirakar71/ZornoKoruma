@@ -1,5 +1,5 @@
 name: ZornoKoruma
-version: 1.0
+version: 1.1
 main: com.zornoely.koruma.Main
 api-version: 1.20
 commands:
