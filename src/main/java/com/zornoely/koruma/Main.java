@@ -153,47 +153,45 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
         if (!config.contains("regions") || config.getConfigurationSection("regions") == null) return;
 
         for (String key : config.getConfigurationSection("regions").getKeys(false)) {
-            try {
-                String path = "regions." + key;
-                boolean preventBreak = config.getBoolean(path + ".preventBreak");
-                boolean preventPlace = config.getBoolean(path + ".preventPlace");
-                int priority = config.getInt(path + ".priority", 1);
-                String typeName = config.getString(path + ".typeName", "Koruma");
-                boolean isSpecific = config.getBoolean(path + ".isSpecific");
+            String path = "regions." + key;
+            boolean preventBreak = config.getBoolean(path + ".preventBreak");
+            boolean preventPlace = config.getBoolean(path + ".preventPlace");
+            int priority = config.getInt(path + ".priority", 1);
+            String typeName = config.getString(path + ".typeName", "Koruma");
+            boolean isSpecific = config.getBoolean(path + ".isSpecific");
 
-                if (isSpecific) {
-                    List<String> blockStrs = config.getStringList(path + ".blocks");
-                    Set<Location> locs = new HashSet<>();
-                    for (String s : blockStrs) {
-                        String[] parts = s.split(",");
-                        if (parts.length == 4 && Bukkit.getWorld(parts[0]) != null) {
-                            locs.add(new Location(
-                                Bukkit.getWorld(parts[0]),
-                                Integer.parseInt(parts[1]),
-                                Integer.parseInt(parts[2]),
-                                Integer.parseInt(parts[3])
-                            ));
-                        }
-                    }
-                    if (!locs.isEmpty()) {
-                        regions.add(new ProtectedRegion(locs, preventBreak, preventPlace, priority, typeName));
-                    }
-                } else {
-                    String worldName = config.getString(path + ".world");
-                    String p1Str = config.getString(path + ".pos1");
-                    String p2Str = config.getString(path + ".pos2");
-
-                    if (worldName != null && p1Str != null && p2Str != null && Bukkit.getWorld(worldName) != null) {
-                        String[] p1Parts = p1Str.split(",");
-                        String[] p2Parts = p2Str.split(",");
-
-                        Location p1 = new Location(Bukkit.getWorld(worldName), Double.parseDouble(p1Parts[0]), Double.parseDouble(p1Parts[1]), Double.parseDouble(p1Parts[2]));
-                        Location p2 = new Location(Bukkit.getWorld(worldName), Double.parseDouble(p2Parts[0]), Double.parseDouble(p2Parts[1]), Double.parseDouble(p2Parts[2]));
-
-                        regions.add(new ProtectedRegion(p1, p2, preventBreak, preventPlace, priority, typeName));
+            if (isSpecific) {
+                List<String> blockStrs = config.getStringList(path + ".blocks");
+                Set<Location> locs = new HashSet<>();
+                for (String s : blockStrs) {
+                    String[] parts = s.split(",");
+                    if (parts.length == 4 && Bukkit.getWorld(parts[0]) != null) {
+                        locs.add(new Location(
+                            Bukkit.getWorld(parts[0]),
+                            Integer.parseInt(parts[1]),
+                            Integer.parseInt(parts[2]),
+                            Integer.parseInt(parts[3])
+                        ));
                     }
                 }
-            } catch (Exception ignored) {}
+                if (!locs.isEmpty()) {
+                    regions.add(new ProtectedRegion(locs, preventBreak, preventPlace, priority, typeName));
+                }
+            } else {
+                String worldName = config.getString(path + ".world");
+                String p1Str = config.getString(path + ".pos1");
+                String p2Str = config.getString(path + ".pos2");
+
+                if (worldName != null && p1Str != null && p2Str != null && Bukkit.getWorld(worldName) != null) {
+                    String[] p1Parts = p1Str.split(",");
+                    String[] p2Parts = p2Str.split(",");
+
+                    Location p1 = new Location(Bukkit.getWorld(worldName), Double.parseDouble(p1Parts[0]), Double.parseDouble(p1Parts[1]), Double.parseDouble(p1Parts[2]));
+                    Location p2 = new Location(Bukkit.getWorld(worldName), Double.parseDouble(p2Parts[0]), Double.parseDouble(p2Parts[1]), Double.parseDouble(p2Parts[2]));
+
+                    regions.add(new ProtectedRegion(p1, p2, preventBreak, preventPlace, priority, typeName));
+                }
+            }
         }
     }
 
@@ -348,75 +346,84 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-        try {
-            Player p = event.getPlayer();
-            ItemStack item = p.getInventory().getItemInMainHand();
+        Player p = event.getPlayer();
+        ItemStack item = p.getInventory().getItemInMainHand();
 
-            if (item.hasItemMeta() && item.getItemMeta() != null) {
-                String name = item.getItemMeta().getDisplayName();
+        if (item.hasItemMeta() && item.getItemMeta() != null) {
+            String name = item.getItemMeta().getDisplayName();
 
-                if (item.getType() == Material.GOLDEN_AXE && name.equals(ChatColor.GOLD + "Koruma Baltası")) {
-                    if (event.getClickedBlock() == null) return;
-                    if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
-                        pos1Map.put(p.getUniqueId(), event.getClickedBlock().getLocation());
-                        p.sendMessage(color("&b&lZornoEly &8&l► &a1. Pozisyon seçildi!"));
-                        event.setCancelled(true);
-                    } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                        pos2Map.put(p.getUniqueId(), event.getClickedBlock().getLocation());
-                        p.sendMessage(color("&b&lZornoEly &8&l► &a2. Pozisyon seçildi!"));
-                        event.setCancelled(true);
-                    }
-                }
-
-                if (item.getType() == Material.DIAMOND_PICKAXE && name.equals(ChatColor.AQUA + "Koruma Kazması")) {
-                    Block b = event.getClickedBlock();
-                    if (b == null) return;
-
+            if (item.getType() == Material.GOLDEN_AXE && name.equals(ChatColor.GOLD + "Koruma Baltası")) {
+                if (event.getClickedBlock() == null) return;
+                if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
+                    pos1Map.put(p.getUniqueId(), event.getClickedBlock().getLocation());
+                    p.sendMessage(color("&b&lZornoEly &8&l► &a1. Pozisyon seçildi!"));
                     event.setCancelled(true);
-                    Set<Location> set = blockSelectionMap.computeIfAbsent(p.getUniqueId(), k -> new HashSet<>());
-                    Location loc = b.getLocation();
-
-                    if (set.contains(loc)) {
-                        set.remove(loc);
-                        p.sendMessage(color("&b&lZornoEly &8&l► &cBlok seçimden çıkarıldı."));
-                    } else {
-                        set.add(loc);
-                        p.sendMessage(color("&b&lZornoEly &8&l► &aBlok seçildi!"));
-                    }
+                } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                    pos2Map.put(p.getUniqueId(), event.getClickedBlock().getLocation());
+                    p.sendMessage(color("&b&lZornoEly &8&l► &a2. Pozisyon seçildi!"));
+                    event.setCancelled(true);
                 }
             }
-        } catch (Exception ignored) {}
+
+            if (item.getType() == Material.DIAMOND_PICKAXE && name.equals(ChatColor.AQUA + "Koruma Kazması")) {
+                Block b = event.getClickedBlock();
+                if (b == null) return;
+
+                event.setCancelled(true);
+                Set<Location> set = blockSelectionMap.computeIfAbsent(p.getUniqueId(), k -> new HashSet<>());
+                Location loc = b.getLocation();
+
+                if (set.contains(loc)) {
+                    set.remove(loc);
+                    p.sendMessage(color("&b&lZornoEly &8&l► &cBlok seçimden çıkarıldı."));
+                } else {
+                    set.add(loc);
+                    p.sendMessage(color("&b&lZornoEly &8&l► &aBlok seçildi!"));
+                }
+            }
+        }
     }
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
-        try {
-            Player p = event.getPlayer();
-            if (p.hasPermission("koruma.bypass")) return;
+        Player p = event.getPlayer();
+        if (p.hasPermission("koruma.bypass")) return;
 
-            Location loc = event.getBlock().getLocation();
-            ProtectedRegion highestPriorityRegion = null;
+        Location loc = event.getBlock().getLocation();
+        ProtectedRegion highestPriorityRegion = null;
 
-            for (ProtectedRegion region : regions) {
-                if (region.isInside(loc)) {
-                    if (highestPriorityRegion == null || region.getPriority() > highestPriorityRegion.getPriority()) {
-                        highestPriorityRegion = region;
-                    }
+        for (ProtectedRegion region : regions) {
+            if (region.isInside(loc)) {
+                if (highestPriorityRegion == null || region.getPriority() > highestPriorityRegion.getPriority()) {
+                    highestPriorityRegion = region;
                 }
             }
+        }
 
-            if (highestPriorityRegion != null) {
-                if (highestPriorityRegion.isPreventBreak()) {
-                    event.setCancelled(true);
-                    p.sendMessage(color("&b&lZornoEly &8&l► &cBu alanda blok kıramazsın!"));
-                } else {
-                    event.setCancelled(false);
-                }
+        if (highestPriorityRegion != null) {
+            if (highestPriorityRegion.isPreventBreak()) {
+                event.setCancelled(true);
+                p.sendMessage(color("&b&lZornoEly &8&l► &cBu alanda blok kıramazsın!"));
+            } else {
+                event.setCancelled(false);
             }
-        } catch (Exception ignored) {}
+        }
     }
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
-        try {
-            Player p = event.getPlaye
+        Player p = event.getPlayer();
+        if (p.hasPermission("koruma.bypass")) return;
+
+        Location loc = event.getBlock().getLocation();
+        ProtectedRegion highestPriorityRegion = null;
+
+        for (ProtectedRegion region : regions) {
+            if (region.isInside(loc)) {
+                if (highestPriorityRegion == null || region.getPriority() > highestPriorityRegion.getPriority()) {
+                    highestPriorityRegion = region;
+                }
+            }
+        }
+
+        if (highestPriorityRegion != null && highestPrio
