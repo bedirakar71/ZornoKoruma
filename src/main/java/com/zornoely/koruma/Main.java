@@ -276,10 +276,9 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                 Location p1 = pos1Map.get(player.getUniqueId());
                 Location p2 = pos2Map.get(player.getUniqueId());
 
-                // DÜZELTİLEN KISIM: Komuttan sonra girilen 2. argümanı (args[1]) doğrudan öncelik olarak okuyoruz
                 int priority = 1;
                 if (subCommand.equals("maden")) {
-                    priority = 10; // Maden için varsayılan öncelik 10
+                    priority = 10;
                 }
                 
                 if (args.length >= 2) {
@@ -326,7 +325,7 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
             player.sendMessage(color("&f/koruma maden <öncelik> &7- Maden alanı yapar (Kırma serbest)."));
             player.sendMessage(color("&f/koruma serbest <öncelik> &7- Tamamen serbest alan yapar."));
             player.sendMessage(color("&f/koruma liste &7- Kayıtlı alanları gösterir."));
-            player.sendMessage.format(color("&f/koruma sil <no> &7- Alanı siler."));
+            player.sendMessage(color("&f/koruma sil <no> &7- Alanı siler."));
             return true;
         }
 
@@ -428,4 +427,6 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
     }
 
     private String color(String text) {
-        return ChatColor.translateAlternateColorCodes
+        return ChatColor.translateAlternateColorCodes('&', text);
+    }
+                    }
