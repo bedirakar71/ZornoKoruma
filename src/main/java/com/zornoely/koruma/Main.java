@@ -8,6 +8,7 @@ import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -35,25 +36,26 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
         private final boolean preventBreak;
         private final boolean preventPlace;
         private final int priority;
+        private final String typeName; // Koruma türü (Koruma, Maden, Serbest)
 
-        // Küp (Cuboid) koruma - Balta ile
-        public ProtectedRegion(Location pos1, Location pos2, boolean preventBreak, boolean preventPlace, int priority) {
+        public ProtectedRegion(Location pos1, Location pos2, boolean preventBreak, boolean preventPlace, int priority, String typeName) {
             this.pos1 = pos1;
             this.pos2 = pos2;
             this.specificBlocks = null;
             this.preventBreak = preventBreak;
             this.preventPlace = preventPlace;
             this.priority = priority;
+            this.typeName = typeName;
         }
 
-        // Tekil blok seçimi - Kazma ile (Üçgen vb. özel şekiller)
-        public ProtectedRegion(Set<Location> specificBlocks, boolean preventBreak, boolean preventPlace, int priority) {
+        public ProtectedRegion(Set<Location> specificBlocks, boolean preventBreak, boolean preventPlace, int priority, String typeName) {
             this.pos1 = null;
             this.pos2 = null;
             this.specificBlocks = new HashSet<>(specificBlocks);
             this.preventBreak = preventBreak;
             this.preventPlace = preventPlace;
             this.priority = priority;
+            this.typeName = typeName;
         }
 
         public boolean isInside(Location loc) {
@@ -89,15 +91,108 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
         public boolean isPreventBreak() { return preventBreak; }
         public boolean isPreventPlace() { return preventPlace; }
         public int getPriority() { return priority; }
+        public String getTypeName() { return typeName; }
+        public boolean isSpecific() { return specificBlocks != null; }
+        public Set<Location> getSpecificBlocks() { return specificBlocks; }
+        public Location getPos1() { return pos1; }
+        public Location getPos2() { return pos2; }
     }
 
     @Override
     public void onEnable() {
+        saveDefaultConfig();
+        loadRegionsFromConfig();
         Bukkit.getPluginManager().registerEvents(this, this);
         if (getCommand("balta") != null) getCommand("balta").setExecutor(this);
         if (getCommand("kazma") != null) getCommand("kazma").setExecutor(this);
         if (getCommand("koruma") != null) getCommand("koruma").setExecutor(this);
-        getLogger().info("ZornoKoruma aktif edildi!");
+        getLogger().info("ZornoKoruma aktif edildi! (" + regions.size() + " alan yuklendi)");
+    }
+
+    @Override
+    public void onDisable() {
+        saveRegionsToConfig();
+    }
+
+    private void saveRegionsToConfig() {
+        FileConfiguration config = getConfig();
+        config.set("regions", null);
+
+        for (int i = 0; i < regions.size(); i++) {
+            ProtectedRegion region = regions.get(i);
+            String path = "regions." + i;
+
+            config.set(path + ".preventBreak", region.isPreventBreak());
+            config.set(path + ".preventPlace", region.isPreventPlace());
+            config.set(path + ".priority", region.getPriority());
+            config.set(path + ".typeName", region.getTypeName());
+            config.set(path + ".isSpecific", region.isSpecific());
+
+            if (region.isSpecific()) {
+                List<String> locList = new ArrayList<>();
+                for (Location l : region.getSpecificBlocks()) {
+                    if (l.getWorld() != null) {
+                        locList.add(l.getWorld().getName() + "," + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ());
+                    }
+                }
+                config.set(path + ".blocks", locList);
+            } else {
+                if (region.getPos1() != null && region.getPos2() != null && region.getPos1().getWorld() != null) {
+                    config.set(path + ".world", region.getPos1().getWorld().getName());
+                    config.set(path + ".pos1", region.getPos1().getX() + "," + region.getPos1().getY() + "," + region.getPos1().getZ());
+                    config.set(path + ".pos2", region.getPos2().getX() + "," + region.getPos2().getY() + "," + region.getPos2().getZ());
+                }
+            }
+        }
+        saveConfig();
+    }
+
+    private void loadRegionsFromConfig() {
+        regions.clear();
+        FileConfiguration config = getConfig();
+        if (!config.contains("regions")) return;
+
+        for (String key : config.getConfigurationSection("regions").getKeys(false)) {
+            String path = "regions." + key;
+            boolean preventBreak = config.getBoolean(path + ".preventBreak");
+            boolean preventPlace = config.getBoolean(path + ".preventPlace");
+            int priority = config.getInt(path + ".priority", 1);
+            String typeName = config.getString(path + ".typeName", "Koruma");
+            boolean isSpecific = config.getBoolean(path + ".isSpecific");
+
+            if (isSpecific) {
+                List<String> blockStrs = config.getStringList(path + ".blocks");
+                Set<Location> locs = new HashSet<>();
+                for (String s : blockStrs) {
+                    String[] parts = s.split(",");
+                    if (parts.length == 4 && Bukkit.getWorld(parts[0]) != null) {
+                        locs.add(new Location(
+                            Bukkit.getWorld(parts[0]),
+                            Integer.parseInt(parts[1]),
+                            Integer.parseInt(parts[2]),
+                            Integer.parseInt(parts[3])
+                        ));
+                    }
+                }
+                if (!locs.isEmpty()) {
+                    regions.add(new ProtectedRegion(locs, preventBreak, preventPlace, priority, typeName));
+                }
+            } else {
+                String worldName = config.getString(path + ".world");
+                String p1Str = config.getString(path + ".pos1");
+                String p2Str = config.getString(path + ".pos2");
+
+                if (worldName != null && p1Str != null && p2Str != null && Bukkit.getWorld(worldName) != null) {
+                    String[] p1Parts = p1Str.split(",");
+                    String[] p2Parts = p2Str.split(",");
+
+                    Location p1 = new Location(Bukkit.getWorld(worldName), Double.parseDouble(p1Parts[0]), Double.parseDouble(p1Parts[1]), Double.parseDouble(p1Parts[2]));
+                    Location p2 = new Location(Bukkit.getWorld(worldName), Double.parseDouble(p2Parts[0]), Double.parseDouble(p2Parts[1]), Double.parseDouble(p2Parts[2]));
+
+                    regions.add(new ProtectedRegion(p1, p2, preventBreak, preventPlace, priority, typeName));
+                }
+            }
+        }
     }
 
     @Override
@@ -121,7 +216,7 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                 axe.setItemMeta(meta);
             }
             player.getInventory().addItem(axe);
-            player.sendMessage(color("&b&lZornoEly &8&l► &aKutu seçim baltası verildi! (2 köşe seçimi)"));
+            player.sendMessage(color("&b&lZornoEly &8&l► &aSeçim baltası verildi!"));
             return true;
         }
 
@@ -131,81 +226,103 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                 player.sendMessage(color("&b&lZornoEly &8&l► &aSeçilen özel bloklar temizlendi!"));
                 return true;
             }
-
             ItemStack pick = new ItemStack(Material.DIAMOND_PICKAXE);
             ItemMeta meta = pick.getItemMeta();
             if (meta != null) {
                 meta.setDisplayName(ChatColor.AQUA + "Koruma Kazması");
-                meta.setLore(Arrays.asList(
-                    ChatColor.YELLOW + "Tıkla: " + ChatColor.WHITE + "Blok Seç / Seçimi Kaldır",
-                    ChatColor.GRAY + "Üçgen ve özel şekiller yapmak içindir."
-                ));
+                meta.setLore(Arrays.asList(ChatColor.YELLOW + "Tıkla: " + ChatColor.WHITE + "Blok Seç / Seçimi Kaldır"));
                 pick.setItemMeta(meta);
             }
             player.getInventory().addItem(pick);
-            player.sendMessage(color("&b&lZornoEly &8&l► &aTekil blok seçim kazması verildi! İstediğin bloklara tıkla."));
+            player.sendMessage(color("&b&lZornoEly &8&l► &aTekil blok seçim kazması verildi!"));
             return true;
         }
 
         if (command.getName().equalsIgnoreCase("koruma")) {
-            if (args.length >= 2 && args[0].equalsIgnoreCase("ac")) {
+            if (args.length >= 1 && args[0].equalsIgnoreCase("liste")) {
+                if (regions.isEmpty()) {
+                    player.sendMessage(color("&b&lZornoEly &8&l► &cKayıtlı koruma/alan bulunamadı."));
+                    return true;
+                }
+                player.sendMessage(color("&b&lZornoEly &8&l► &eKayıtlı Alanlar (" + regions.size() + "):"));
+                for (int i = 0; i < regions.size(); i++) {
+                    ProtectedRegion r = regions.get(i);
+                    player.sendMessage(color("&7" + (i + 1) + ". [&b" + r.getTypeName() + "&7] &fÖncelik: &e" + r.getPriority() + " &f| Kırma: " + (r.isPreventBreak() ? "&cYasak" : "&aSerbest")));
+                }
+                return true;
+            }
+
+            if (args.length >= 2 && args[0].equalsIgnoreCase("sil")) {
+                try {
+                    int index = Integer.parseInt(args[1]) - 1;
+                    if (index >= 0 && index < regions.size()) {
+                        regions.remove(index);
+                        saveRegionsToConfig();
+                        player.sendMessage(color("&b&lZornoEly &8&l► &a" + (index + 1) + " numaralı alan silindi!"));
+                    } else {
+                        player.sendMessage(color("&b&lZornoEly &8&l► &cGeçersiz numara!"));
+                    }
+                } catch (NumberFormatException e) {
+                    player.sendMessage(color("&b&lZornoEly &8&l► &cLütfen sayı girin: /koruma sil <no>"));
+                }
+                return true;
+            }
+
+            if (args.length >= 1) {
+                String subCommand = args[0].toLowerCase();
                 Set<Location> selectedBlocks = blockSelectionMap.get(player.getUniqueId());
                 Location p1 = pos1Map.get(player.getUniqueId());
                 Location p2 = pos2Map.get(player.getUniqueId());
 
                 int priority = 1;
-                if (args.length >= 4) {
-                    try {
-                        priority = Integer.parseInt(args[3]);
-                    } catch (NumberFormatException e) {
-                        player.sendMessage(color("&b&lZornoEly &8&l► &cGeçersiz öncelik sayısı!"));
-                        return true;
-                    }
+                if (args.length >= 2 && !subCommand.matches("ac|maden|serbest")) {
+                    // Eğer 1. argüman sayı ise öncelik olarak al
+                    try { priority = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
+                } else if (args.length >= 3) {
+                    try { priority = Integer.parseInt(args[2]); } catch (NumberFormatException ignored) {}
                 }
 
-                String tip = args[1].toLowerCase();
-                String durum = args.length >= 3 ? args[2].toLowerCase() : "";
+                boolean preventBreak = true;
+                boolean preventPlace = true;
+                String typeName = "Koruma";
+
+                if (subCommand.equals("maden")) {
+                    preventBreak = false; // Madende kırma serbest!
+                    preventPlace = true;  // Blok koyma yasak (veya isteğe göre)
+                    typeName = "Maden";
+                    if (priority == 1) priority = 10; // Madenler varsayılan olarak korumayı ezin diye önceliği yüksek olsun
+                } else if (subCommand.equals("serbest")) {
+                    preventBreak = false;
+                    preventPlace = false;
+                    typeName = "Serbest";
+                } else if (subCommand.equals("ac")) {
+                    typeName = "Koruma (Kilitli)";
+                }
 
                 if (selectedBlocks != null && !selectedBlocks.isEmpty()) {
-                    if (tip.equals("blok")) {
-                        if (durum.equals("kirma")) {
-                            regions.add(new ProtectedRegion(selectedBlocks, true, false, priority));
-                            player.sendMessage(color("&b&lZornoEly &8&l► &aSeçilen " + selectedBlocks.size() + " blokta Kırma YASAKLANDI! &7(Öncelik: " + priority + ")"));
-                        } else if (durum.equals("serbest")) {
-                            regions.add(new ProtectedRegion(selectedBlocks, false, false, priority));
-                            player.sendMessage(color("&b&lZornoEly &8&l► &aSeçilen " + selectedBlocks.size() + " blokta Kırma SERBEST! &7(Öncelik: " + priority + ")"));
-                        } else if (durum.equals("koyma")) {
-                            regions.add(new ProtectedRegion(selectedBlocks, true, true, priority));
-                            player.sendMessage(color("&b&lZornoEly &8&l► &aSeçilen " + selectedBlocks.size() + " blokta Kırma ve Koyma YASAKLANDI! &7(Öncelik: " + priority + ")"));
-                        }
-                        blockSelectionMap.remove(player.getUniqueId());
-                        return true;
-                    }
+                    regions.add(new ProtectedRegion(selectedBlocks, preventBreak, preventPlace, priority, typeName));
+                    blockSelectionMap.remove(player.getUniqueId());
+                    saveRegionsToConfig();
+                    player.sendMessage(color("&b&lZornoEly &8&l► &aSeçilen " + selectedBlocks.size() + " blok " + typeName + " olarak ayarlandı! &7(Öncelik: " + priority + ")"));
+                    return;
                 } else if (p1 != null && p2 != null) {
-                    if (tip.equals("blok")) {
-                        if (durum.equals("kirma")) {
-                            regions.add(new ProtectedRegion(p1, p2, true, false, priority));
-                            player.sendMessage(color("&b&lZornoEly &8&l► &aAlanda Blok Kırma YASAKLANDI! &7(Öncelik: " + priority + ")"));
-                        } else if (durum.equals("serbest")) {
-                            regions.add(new ProtectedRegion(p1, p2, false, false, priority));
-                            player.sendMessage(color("&b&lZornoEly &8&l► &aAlanda Blok Kırma SERBEST! &7(Öncelik: " + priority + ")"));
-                        } else if (durum.equals("koyma")) {
-                            regions.add(new ProtectedRegion(p1, p2, true, true, priority));
-                            player.sendMessage(color("&b&lZornoEly &8&l► &aAlanda Kırma ve Koyma YASAKLANDI! &7(Öncelik: " + priority + ")"));
-                        }
-                        return true;
-                    }
+                    regions.add(new ProtectedRegion(p1, p2, preventBreak, preventPlace, priority, typeName));
+                    saveRegionsToConfig();
+                    player.sendMessage(color("&b&lZornoEly &8&l► &aSeçilen alan " + typeName + " olarak ayarlandı! &7(Öncelik: " + priority + ")"));
+                    return;
                 } else {
-                    player.sendMessage(color("&b&lZornoEly &8&l► &cÖnce /balta veya /kazma ile seçim yapmalısın!"));
-                    return true;
+                    player.sendMessage(color("&b&lZornoEly &8&l► &cÖnce /balta ile alan seçmelisin!"));
+                    return;
                 }
             }
 
-            player.sendMessage(color("&b&lZornoEly &8&l► &eKullanım Örnekleri:"));
-            player.sendMessage(color("&f/koruma ac blok kirma [oncelik]"));
-            player.sendMessage(color("&f/koruma ac blok serbest [oncelik]"));
-            player.sendMessage(color("&f/koruma ac blok koyma [oncelik]"));
-            return true;
+            player.sendMessage(color("&b&lZornoEly &8&l► &eKullanım:"));
+            player.sendMessage(color("&f/koruma ac &7- Standart koruma alanı yapar (Kırma/Koyma yasak)."));
+            player.sendMessage(color("&f/koruma maden &7- Maden alanı yapar (Kırma serbest)."));
+            player.sendMessage(color("&f/koruma serbest &7- Tamamen serbest alan yapar."));
+            player.sendMessage(color("&f/koruma liste &7- Kayıtlı alanları gösterir."));
+            player.sendMessage(color("&f/koruma sil <no> &7- Alanı siler."));
+            return;
         }
 
         return false;
@@ -242,10 +359,10 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
 
                 if (set.contains(loc)) {
                     set.remove(loc);
-                    p.sendMessage(color("&b&lZornoEly &8&l► &cBlok seçimden çıkarıldı. &7(Kalan: " + set.size() + ")"));
+                    p.sendMessage(color("&b&lZornoEly &8&l► &cBlok seçimden çıkarıldı."));
                 } else {
                     set.add(loc);
-                    p.sendMessage(color("&b&lZornoEly &8&l► &aBlok seçildi! &7(Toplam: " + set.size() + ")"));
+                    p.sendMessage(color("&b&lZornoEly &8&l► &aBlok seçildi!"));
                 }
             }
         }
@@ -272,7 +389,7 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                 event.setCancelled(true);
                 p.sendMessage(color("&b&lZornoEly &8&l► &cBu alanda blok kıramazsın!"));
             } else {
-                event.setCancelled(false);
+                event.setCancelled(false); // Maden veya serbest alansa kırılmasına izin ver
             }
         }
     }
@@ -302,4 +419,4 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
     private String color(String text) {
         return ChatColor.translateAlternateColorCodes('&', text);
     }
-}
+                           }
