@@ -36,7 +36,7 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
         private final boolean preventBreak;
         private final boolean preventPlace;
         private final int priority;
-        private final String typeName; // Koruma türü (Koruma, Maden, Serbest)
+        private final String typeName;
 
         public ProtectedRegion(Location pos1, Location pos2, boolean preventBreak, boolean preventPlace, int priority, String typeName) {
             this.pos1 = pos1;
@@ -276,7 +276,6 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
 
                 int priority = 1;
                 if (args.length >= 2 && !subCommand.matches("ac|maden|serbest")) {
-                    // Eğer 1. argüman sayı ise öncelik olarak al
                     try { priority = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
                 } else if (args.length >= 3) {
                     try { priority = Integer.parseInt(args[2]); } catch (NumberFormatException ignored) {}
@@ -287,10 +286,10 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                 String typeName = "Koruma";
 
                 if (subCommand.equals("maden")) {
-                    preventBreak = false; // Madende kırma serbest!
-                    preventPlace = true;  // Blok koyma yasak (veya isteğe göre)
+                    preventBreak = false;
+                    preventPlace = true;
                     typeName = "Maden";
-                    if (priority == 1) priority = 10; // Madenler varsayılan olarak korumayı ezin diye önceliği yüksek olsun
+                    if (priority == 1) priority = 10;
                 } else if (subCommand.equals("serbest")) {
                     preventBreak = false;
                     preventPlace = false;
@@ -304,25 +303,25 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                     blockSelectionMap.remove(player.getUniqueId());
                     saveRegionsToConfig();
                     player.sendMessage(color("&b&lZornoEly &8&l► &aSeçilen " + selectedBlocks.size() + " blok " + typeName + " olarak ayarlandı! &7(Öncelik: " + priority + ")"));
-                    return;
+                    return true;
                 } else if (p1 != null && p2 != null) {
                     regions.add(new ProtectedRegion(p1, p2, preventBreak, preventPlace, priority, typeName));
                     saveRegionsToConfig();
                     player.sendMessage(color("&b&lZornoEly &8&l► &aSeçilen alan " + typeName + " olarak ayarlandı! &7(Öncelik: " + priority + ")"));
-                    return;
+                    return true;
                 } else {
                     player.sendMessage(color("&b&lZornoEly &8&l► &cÖnce /balta ile alan seçmelisin!"));
-                    return;
+                    return true;
                 }
             }
 
             player.sendMessage(color("&b&lZornoEly &8&l► &eKullanım:"));
-            player.sendMessage(color("&f/koruma ac &7- Standart koruma alanı yapar (Kırma/Koyma yasak)."));
+            player.sendMessage(color("&f/koruma ac &7- Standart koruma alanı yapar."));
             player.sendMessage(color("&f/koruma maden &7- Maden alanı yapar (Kırma serbest)."));
             player.sendMessage(color("&f/koruma serbest &7- Tamamen serbest alan yapar."));
             player.sendMessage(color("&f/koruma liste &7- Kayıtlı alanları gösterir."));
             player.sendMessage(color("&f/koruma sil <no> &7- Alanı siler."));
-            return;
+            return true;
         }
 
         return false;
@@ -389,7 +388,7 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
                 event.setCancelled(true);
                 p.sendMessage(color("&b&lZornoEly &8&l► &cBu alanda blok kıramazsın!"));
             } else {
-                event.setCancelled(false); // Maden veya serbest alansa kırılmasına izin ver
+                event.setCancelled(false);
             }
         }
     }
@@ -419,4 +418,4 @@ public class Main extends JavaPlugin implements Listener, CommandExecutor {
     private String color(String text) {
         return ChatColor.translateAlternateColorCodes('&', text);
     }
-                     }
+                        }
