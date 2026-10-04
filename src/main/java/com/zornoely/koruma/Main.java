@@ -70,7 +70,7 @@ public final class Main extends JavaPlugin implements Listener, CommandExecutor 
                 axe.setItemMeta(meta);
             }
             player.getInventory().addItem(axe);
-            player.sendMessage(ChatColor.GREEN + "Elene Koruma Baltasi verildi! Sol tikla 1, sag tikla 2. koseyi sec.");
+            player.sendMessage(ChatColor.GREEN + "Eline Koruma Baltasi verildi! Sol tikla 1, sag tikla 2. koseyi sec.");
             return true;
         }
 
@@ -83,7 +83,7 @@ public final class Main extends JavaPlugin implements Listener, CommandExecutor 
                 pickaxe.setItemMeta(meta);
             }
             player.getInventory().addItem(pickaxe);
-            player.sendMessage(ChatColor.GREEN + "Elene Tekli Blok Secici kazma verildi! Sag tikladigin bloklar listeye eklenecek.");
+            player.sendMessage(ChatColor.GREEN + "Eline Tekli Blok Secici kazma verildi! Sag tikladigin bloklar listeye eklenecek.");
             return true;
         }
 
@@ -92,7 +92,7 @@ public final class Main extends JavaPlugin implements Listener, CommandExecutor 
                 player.sendMessage(ChatColor.GOLD + "--- ZornoKoruma Yardim ---");
                 player.sendMessage(ChatColor.YELLOW + "/balta " + ChatColor.WHITE + "- Bolge secim baltasi al");
                 player.sendMessage(ChatColor.YELLOW + "/kazma " + ChatColor.WHITE + "- Tekli blok secim kazmasi al");
-                player.sendMessage(ChatColor.YELLOW + "/koruma ac <isim> <kirma/all/maden> <oncelik> " + ChatColor.WHITE + "- Bolgeyi korumaya al");
+                player.sendMessage(ChatColor.YELLOW + "/koruma ac <isim> <kirma/all/maden/serbest> <oncelik> " + ChatColor.WHITE + "- Bolgeyi korumaya al");
                 player.sendMessage(ChatColor.YELLOW + "/koruma sil <isim> " + ChatColor.WHITE + "- Bolgeyi sil");
                 player.sendMessage(ChatColor.YELLOW + "/koruma liste " + ChatColor.WHITE + "- Bolgeleri listele");
                 return true;
@@ -100,7 +100,7 @@ public final class Main extends JavaPlugin implements Listener, CommandExecutor 
 
             if (args[0].equalsIgnoreCase("ac")) {
                 if (args.length < 4) {
-                    player.sendMessage(ChatColor.RED + "Kullanim: /koruma ac <isim> <kirma/all/maden> <oncelik>");
+                    player.sendMessage(ChatColor.RED + "Kullanim: /koruma ac <isim> <kirma/all/maden/serbest> <oncelik>");
                     return true;
                 }
 
@@ -115,8 +115,8 @@ public final class Main extends JavaPlugin implements Listener, CommandExecutor 
                     return true;
                 }
 
-                if (!type.equals("kirma") && !type.equals("all") && !type.equals("maden")) {
-                    player.sendMessage(ChatColor.RED + "Tur sadece su olailir: kirma, all, maden");
+                if (!type.equals("kirma") && !type.equals("all") && !type.equals("maden") && !type.equals("serbest")) {
+                    player.sendMessage(ChatColor.RED + "Tur sadece su olabilir: kirma, all, maden, serbest");
                     return true;
                 }
 
@@ -218,13 +218,10 @@ public final class Main extends JavaPlugin implements Listener, CommandExecutor 
         Region targetRegion = getEffectiveRegion(loc);
 
         if (targetRegion != null) {
-            if (targetRegion.type.equals("all")) {
-                event.setCancelled(true);
-                player.sendMessage(ChatColor.RED + "Bu alanda blok kirmak yasak! (" + targetRegion.name + ")");
-            } else if (targetRegion.type.equals("maden")) {
-                // Maden bölgesinde kırma serbest, dokunmuyoruz.
+            if (targetRegion.type.equals("serbest") || targetRegion.type.equals("maden")) {
+                // Serbest veya maden bölgelerinde kırma serbest
                 return;
-            } else if (targetRegion.type.equals("kirma")) {
+            } else if (targetRegion.type.equals("all") || targetRegion.type.equals("kirma")) {
                 event.setCancelled(true);
                 player.sendMessage(ChatColor.RED + "Bu alanda blok kirmak yasak! (" + targetRegion.name + ")");
             }
@@ -240,7 +237,10 @@ public final class Main extends JavaPlugin implements Listener, CommandExecutor 
         Region targetRegion = getEffectiveRegion(loc);
 
         if (targetRegion != null) {
-            if (targetRegion.type.equals("all") || targetRegion.type.equals("maden")) {
+            if (targetRegion.type.equals("serbest")) {
+                // Serbest bölgede blok koymak da serbest
+                return;
+            } else if (targetRegion.type.equals("all") || targetRegion.type.equals("maden")) {
                 event.setCancelled(true);
                 player.sendMessage(ChatColor.RED + "Bu alanda blok koymak yasak! (" + targetRegion.name + ")");
             }
@@ -390,4 +390,4 @@ public final class Main extends JavaPlugin implements Listener, CommandExecutor 
             }
         }
     }
-              }
+        }
