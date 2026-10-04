@@ -2,4 +2,12 @@ name: ZornoKoruma
 version: 1.0-SNAPSHOT
 main: com.zornoely.koruma.Main
 api-version: '1.20'
-description: ZornoEly Bolge Koruma Eklentisi
+description: ZornoEly Gelismis Bolge Koruma Eklentisi
+commands:
+  koruma:
+    description: Ana koruma komutu
+  balta:
+    description: Koruma baltasi alir
+  kazma:
+    description: Tekli blok secici kazma alir
+    
