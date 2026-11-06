@@ -1,0 +1,192 @@
+# ═══════════════════════════════════════════════════════════════
+#  ZornoGuard - Kill Aura / Reach / Duvar arkası vuruş koruması
+#  Değişiklikten sonra:  /zg yenile
+# ═══════════════════════════════════════════════════════════════
+
+general:
+  # Şüpheli vuruşu iptal et (hile işe yaramaz hale gelir, ceza vermeden bile korur)
+  cancel-hits: true
+  # Eşiklere oyuncu başına çok küçük rastgele sapma ekler (hile yazarı tam sınırı öğrenemesin)
+  randomize-thresholds: true
+  # Bu yetkilerden biri varsa oyuncu kontrol edilmez (eski Skript'teki anticheat.bypass da çalışır)
+  bypass-permissions:
+    - zornoguard.bypass
+    - anticheat.bypass
+  # Giriş/ışınlanma/dünya değişiminden sonra konum tabanlı kontroller bu kadar tick atlanır (20 tick = 1 sn)
+  grace-ticks: 20
+  # Ping telafisi için en fazla kaç tick geriye bakılır (10 = ~500 ms). Yükseltmek hileci lehine tolerans artırır.
+  max-compensation-ticks: 10
+  # Sunucu tick'i bu süreden (ms) uzun sürerse bir süre konum kontrolleri durur (lag'de yanlış alarm olmasın)
+  lag-guard-ms: 130
+  lag-guard-ticks: 15
+  # TPS bunun altına düşerse ağır "duvar" ışın kontrolü atlanır (sunucuyu korur)
+  wall-min-tps: 14
+
+decay:
+  # Her aralıkta tüm VL'lerden bu kadar düşer
+  amount: 1.0
+  interval-seconds: 3
+
+checks:
+  # ── REACH: gecikme telafili erişim ölçümü (oyuncunun lehine en küçük mesafe alınır)
+  reach:
+    enabled: true
+    tolerance: 0.15          # vanilla menzile (3.0) eklenen sabit tolerans
+    speed-factor: 0.5        # hıza göre ek tolerans (elytra/koşma için)
+    hard-margin: 0.35        # limitin bu kadar üstü = kesin ihlal
+    soft-weight: 1.0
+    hard-weight: 2.5
+    buffer: 2.0              # sınırda ihlaller için tampon
+    check-mobs: true
+    cancel: true
+    mob-extra: 0.45
+    vehicle-extra: 0.75
+    legacy-extra: 0.10
+    sneak-extra: 0.36
+    stat-margin: 0.12        # durağanken 3.1-3.3 gibi küçük reach için istatistik eşiği
+    stat-buffer: 4.0
+    stat-weight: 1.0
+    stat-max-speed: 0.12
+
+  # ── AIM: nişan çizgisi hedefin kutusuna değmiyorsa (kill aura, hitbox, ters bakarak vurma)
+  aim:
+    enabled: true
+    allow: 0.25
+    soft-margin: 0.30
+    hard-margin: 1.20
+    soft-weight: 1.0
+    hard-weight: 2.5
+    buffer: 2.0
+    check-mobs: true
+    flip-detection: true     # ani 180° dönüş / birebir aynı dönüş (eski Skript mantığı)
+    flip-weight: 1.0
+
+  # ── WALL: duvar arkası vuruş (tüm göz/kutu adayları ve 15 örnek nokta ile)
+  wall:
+    enabled: true
+    weight: 2.5
+    look-weight: 1.0
+    look-buffer: 2.0
+    check-mobs: true
+    cancel: true
+
+  # ── INSIDE: göz konumu katı bloğun / örümcek ağının içindeyken vuruş
+  inside:
+    enabled: true
+    solid-weight: 2.5
+    solid-cancel: true
+    web-weight: 0.75
+    web-buffer: 3.0
+    # Ağ içinde vuruşlarda varsayılan olarak sadece uyarı verir. Trap PvP'de yanlış alarm
+    # görmezsen true yapıp iptal etmeyi açabilirsin.
+    web-cancel: false
+
+  # ── SILENT: yalnızca vuruş anında hedefe bakıp geri dönen (sessiz rotasyon) aura imzası
+  silent:
+    enabled: true
+    small-angle: 25.0
+    big-angle: 50.0
+    min-turn: 45.0
+    net-ratio: 0.4
+    weight: 2.0
+    buffer: 2.0
+
+  # ── MULTI: çoklu hedef / hedef değiştirme
+  multi:
+    enabled: true
+    window-ms: 80            # bu süre içinde farklı hedefe vuruş (eski Skript: 80 ms)
+    weight: 2.0
+    switch-ms: 110
+    switch-angle: 60.0
+    switch-weight: 1.0
+    switch-targets: 4
+    switch-targets-ms: 800
+
+  # ── ACTION: vanilla istemcinin yapamayacağı eylemler
+  action:
+    enabled: true
+    check-using-item: true   # yerken/blok yaparken/yay çekerken vuruş (1.8 istemciler otomatik muaf, ViaVersion varsa)
+    check-inventory: true    # sandık/menü açıkken vuruş
+    using-weight: 2.0
+    using-buffer: 2.0
+    inventory-weight: 3.0
+    inventory-grace-ms: 400
+    rotation-weight: 3.0
+
+  # ── RATE: vuruş hızı
+  rate:
+    enabled: true
+    max-cps: 17              # eski Skript değeri
+    weight: 0.5
+    cancel: true
+    constant-window: 20      # bu kadar vuruşluk pencerede sabit aralık aranır
+    constant-mean-max-ms: 250
+    constant-std-ms: 5.0
+    constant-mode-ratio: 0.92
+    constant-weight: 1.0
+    constant-buffer: 3.0
+
+  # ── SWING: vuruş var ama kol sallama paketi yok
+  swing:
+    enabled: true
+    wait-ticks: 3
+    buffer: 4.0
+    weight: 1.0
+
+alerts:
+  min-vl: 1.0                # bu kontrolün VL'si bunun altındayken uyarı gösterme
+  cooldown-ms: 1500          # aynı oyuncu+kontrol için en sık bu aralıkla uyarı (spam olmasın)
+  console: true
+
+log:
+  file: true                 # plugins/ZornoGuard/logs/flags-YYYY-AA-GG.log (ayrı thread'de yazılır)
+  console: false
+  cooldown-ms: 500           # aynı oyuncu+kontrol için en sık bu aralıkla log satırı
+  retention-days: 14
+  memory-lines: 300          # /zg log için bellekte tutulan son kayıt sayısı
+
+punishments:
+  # Önce birkaç gün sadece uyarıları/logu izle, sonra true yap.
+  enabled: false
+  steps:                     # TOPLAM VL bu değere ulaşınca komutlar konsoldan çalışır
+    - vl: 15
+      commands:
+        - "kick {player} Combat: hile şüphesi (otomatik)"
+    - vl: 30
+      commands:
+        - "ban {player} Combat Unfair Advantage"
+
+messages:
+  prefix: "<gradient:#ff4d4d:#ffb347><bold>ZornoGuard</bold></gradient> <dark_gray>»</dark_gray> "
+  alert: "{prefix}<white><player></white> <gray>şüpheli:</gray> <color:{color}><bold><check></bold></color> <dark_gray>(</dark_gray><yellow>VL <vl></yellow><dark_gray>/</dark_gray><red><total></red><dark_gray>)</dark_gray> <dark_gray>»</dark_gray> <gray><detail></gray>"
+  alert-hover: "<color:{color}><bold><check></bold></color><newline><gray>Oyuncu: <white><player></white><newline>Ping: <white><ping> ms</white><newline>Toplam VL: <white><total></white><newline><dark_gray><detail></dark_gray><newline><yellow>Tıkla: oyuncu detayları"
+  state-on: "<green>AÇIK</green>"
+  state-off: "<red>KAPALI</red>"
+  no-permission: "{prefix}<red>Bu komut için yetkin yok.</red>"
+  players-only: "{prefix}<red>Bu komut yalnızca oyuncular içindir.</red>"
+  unknown-sub: "{prefix}<red>Bilinmeyen alt komut.</red> <gray>/<label> yardım</gray>"
+  usage-info: "{prefix}<gray>Kullanım:</gray> <white>/zg bilgi [oyuncu]</white>"
+  usage-reset: "{prefix}<gray>Kullanım:</gray> <white>/zg sıfırla [oyuncu]</white>"
+  usage-toggle: "{prefix}<gray>Kullanım:</gray> <white>/zg kontrol [ad]</white> <dark_gray>(<list>)</dark_gray>"
+  unknown-check: "{prefix}<red>Bilinmeyen kontrol:</red> <white><check></white> <dark_gray>(<list>)</dark_gray>"
+  toggled: "{prefix}<color:{color}><check></color> <gray>kontrolü</gray> {state}"
+  player-not-found: "{prefix}<red>Oyuncu bulunamadı:</red> <white><player></white>"
+  alerts-on: "{prefix}<green>Hile uyarıları <bold>açıldı</bold>.</green>"
+  alerts-off: "{prefix}<red>Hile uyarıları <bold>kapatıldı</bold>.</red>"
+  reloaded: "{prefix}<green>Yapılandırma yeniden yüklendi.</green>"
+  reset-done: "{prefix}<white><player></white> <green>oyuncusunun VL değerleri sıfırlandı.</green>"
+  info-header: "{prefix}<white><bold><player></bold></white> <dark_gray>|</dark_gray> <gray>Ping:</gray> <green><ping> ms</green> <dark_gray>|</dark_gray> <gray>Toplam VL:</gray> <red><total></red> <dark_gray>|</dark_gray> <gray>Bayrak:</gray> <yellow><flags></yellow>"
+  info-line: " <dark_gray>▸</dark_gray> <color:{color}><check></color> <white><vl></white> <dark_gray><bar></dark_gray>"
+  info-clean: " <dark_gray>▸</dark_gray> <green>Temiz, hiç ihlal yok.</green>"
+  top-header: "{prefix}<gold>En yüksek VL'ler</gold>"
+  top-line: " <yellow>#<rank></yellow> <white><player></white> <dark_gray>-</dark_gray> <red><total></red>"
+  top-empty: " <dark_gray>▸</dark_gray> <green>Şu an VL'si olan oyuncu yok.</green>"
+  log-header: "{prefix}<gold>Son kayıtlar</gold> <dark_gray>(sayfa <page>/<pages> • <count> kayıt)</dark_gray>"
+  log-line: " <dark_gray>▸</dark_gray> <gray><line></gray>"
+  log-empty: "{prefix}<gray>Kayıt yok.</gray>"
+  status-header: "{prefix}<gradient:#ff4d4d:#ffb347><bold>ZornoGuard</bold></gradient> <gray>v<version></gray>"
+  status-check: " <dark_gray>▸</dark_gray> <color:{color}><check></color> <dark_gray>(<id>)</dark_gray> {state}"
+  status-perf: " <gray>Vuruş başına ortalama</gray> <green><avg> µs</green> <dark_gray>(en yüksek <max> µs, <count> vuruş işlendi)</dark_gray>"
+  status-server: " <gray>TPS:</gray> <green><tps></green> <dark_gray>|</dark_gray> <gray>Takip:</gray> <white><players></white> <dark_gray>|</dark_gray> <gray>Toplam bayrak:</gray> <yellow><flags></yellow>"
+  help-header: "{prefix}<gray>Komutlar</gray>"
+  help-line: " <dark_gray>▸</dark_gray> <aqua>/<label> <usage></aqua> <dark_gray>-</dark_gray> <gray><desc></gray>"

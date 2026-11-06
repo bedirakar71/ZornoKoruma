@@ -1,0 +1,21 @@
+name: ZornoGuard
+version: '${project.version}'
+main: dev.zorno.guard.ZornoGuard
+api-version: '1.21'
+authors: [Zorno]
+description: Gelişmiş Kill Aura / Reach / Duvar arkası vuruş koruması
+commands:
+  zguard:
+    description: ZornoGuard yönetim komutu
+    aliases: [zg]
+    usage: /<command> yardım
+permissions:
+  zornoguard.admin:
+    description: Tüm ZornoGuard komutları
+    default: op
+  zornoguard.alerts:
+    description: Hile uyarılarını görür
+    default: op
+  zornoguard.bypass:
+    description: Tüm kontrollerden muaf tutar
+    default: false
