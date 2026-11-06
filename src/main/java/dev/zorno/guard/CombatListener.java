@@ -1,4 +1,4 @@
-package dev.zorno.guard;
+src/main/java/dev/zorno/guard/CombatListener.javapackage dev.zorno.guard;
 
 import dev.zorno.guard.core.AttackContext;
 import dev.zorno.guard.core.PlayerData;
